@@ -1,4 +1,4 @@
-use crate::helpers::TestApp;
+use super::helpers::TestApp;
 
 #[tokio::test]
 async fn root_returns_auth_ui() {
