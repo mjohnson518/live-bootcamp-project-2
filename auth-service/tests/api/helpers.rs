@@ -34,7 +34,7 @@ impl TestApp {
 
     pub async fn signup(&self) -> reqwest::Response {
         self.http_client
-            .get(&format!("{}/signup", &self.address))
+            .post(&format!("{}/signup", &self.address))
             .send()
             .await
             .expect("Failed to execute request.")
@@ -42,7 +42,7 @@ impl TestApp {
 
     pub async fn login(&self) -> reqwest::Response {
         self.http_client
-            .get(&format!("{}/login", &self.address))
+            .post(&format!("{}/login", &self.address))
             .send()
             .await
             .expect("Failed to execute request.")
@@ -50,7 +50,7 @@ impl TestApp {
 
     pub async fn logout(&self) -> reqwest::Response {
         self.http_client
-            .get(&format!("{}/logout", &self.address))
+            .post(&format!("{}/logout", &self.address))
             .send()
             .await
             .expect("Failed to execute request.")
@@ -58,7 +58,7 @@ impl TestApp {
 
     pub async fn verify_2fa(&self) -> reqwest::Response {
         self.http_client
-            .get(&format!("{}/verify-2fa", &self.address))
+            .post(&format!("{}/verify_2fa", &self.address))
             .send()
             .await
             .expect("Failed to execute request.")
@@ -66,7 +66,7 @@ impl TestApp {
 
     pub async fn verify_token(&self) -> reqwest::Response {
         self.http_client
-            .get(&format!("{}/verify-token", &self.address))
+            .post(&format!("{}/verify_token", &self.address))
             .send()
             .await
             .expect("Failed to execute request.")
