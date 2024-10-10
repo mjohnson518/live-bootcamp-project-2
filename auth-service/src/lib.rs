@@ -21,7 +21,8 @@ impl Application {
             .route("/login", axum::routing::post(routes::login))
             .route("/logout", axum::routing::post(routes::logout))
             .route("/verify_2fa", axum::routing::post(routes::verify_2fa))
-            .route("/verify_token", axum::routing::post(routes::verify_token));
+            .route("/verify_token", axum::routing::post(routes::verify_token))
+            .route("/test", axum::routing::get(|| async { "Test route" }));
 
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?.to_string();

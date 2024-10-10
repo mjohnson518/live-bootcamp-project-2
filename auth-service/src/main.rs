@@ -2,9 +2,20 @@ use auth_service::Application;
 
 #[tokio::main]
 async fn main() {
-    let app = Application::build("0.0.0.0:3000")
-        .await
-        .expect("Failed to build app");
+    println!("Starting application...");
+    let app = match Application::build("0.0.0.0:3000").await {
+        Ok(app) => {
+            println!("Application built successfully. Listening on {}", app.address);
+            app
+        },
+        Err(e) => {
+            eprintln!("Failed to build app: {}", e);
+            return;
+        }
+    };
 
-    app.run().await.expect("Failed to run app");
+    println!("Running application...");
+    if let Err(e) = app.run().await {
+        eprintln!("Failed to run app: {}", e);
+    }
 }
