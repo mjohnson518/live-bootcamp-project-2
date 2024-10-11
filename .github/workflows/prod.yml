@@ -14,7 +14,7 @@ jobs:
     steps:
       # Checkout code from the repository
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
       # Cache dependencies to speed up build times
     - name: Cache dependencies
