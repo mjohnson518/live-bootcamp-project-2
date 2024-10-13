@@ -5,7 +5,7 @@ use serde_json::json;
 async fn should_return_422_if_malformed_input() {
     let app = TestApp::new().await;
     let random_email = get_random_email();
-    
+
     // TODO: add more malformed input test cases
     let test_cases = [
         json!({
@@ -24,4 +24,21 @@ async fn should_return_422_if_malformed_input() {
             test_case
         );
     }
+}
+
+#[tokio::test]
+async fn should_return_201_if_valid_input() {
+    // Arrange
+    let app = TestApp::new().await;
+    let body = json!({
+        "email": get_random_email(),
+        "password": "password123",
+        "requires2FA": false
+    });
+
+    // Act
+    let response = app.post_signup(&body).await;
+
+    // Assert
+    assert_eq!(response.status().as_u16(), 201);
 }
