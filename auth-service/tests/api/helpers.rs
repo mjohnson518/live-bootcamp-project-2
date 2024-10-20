@@ -66,6 +66,18 @@ impl TestApp {
             .expect("Failed to execute request.")
     }
 
+    pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: Serialize,
+    {
+        self.http_client
+            .post(&format!("{}/login", &self.address))
+            .json(body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
     pub async fn logout(&self) -> reqwest::Response {
         self.http_client
             .post(&format!("{}/logout", &self.address))
