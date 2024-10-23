@@ -3,10 +3,11 @@ use uuid::Uuid;
 use serde::Serialize;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use reqwest::Client;
+use reqwest::{Client, cookie::Jar};
 
 pub struct TestApp {
     pub address: String,
+    pub cookie_jar: Arc<Jar>,
     pub http_client: Client,
 }
 
@@ -24,14 +25,18 @@ impl TestApp {
         #[allow(clippy::let_underscore_future)]
         let _ = tokio::spawn(app.run());
 
+        // Create and configure cookie jar
+        let cookie_jar = Arc::new(Jar::default());
+        
         // Create a client that can handle cookies
         let http_client = Client::builder()
-            .cookie_store(true)
+            .cookie_provider(cookie_jar.clone())
             .build()
             .expect("Failed to create HTTP client");
 
         TestApp { 
             address, 
+            cookie_jar,
             http_client 
         }
     }
