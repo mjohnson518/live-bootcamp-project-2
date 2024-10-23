@@ -3,10 +3,11 @@ use uuid::Uuid;
 use serde::Serialize;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use reqwest::Client;
 
 pub struct TestApp {
     pub address: String,
-    pub http_client: reqwest::Client,
+    pub http_client: Client,
 }
 
 impl TestApp {
@@ -20,14 +21,19 @@ impl TestApp {
         let address = format!("http://{}", app.address.clone());
 
         // Run the auth service in a separate async task
-        // to avoid blocking the main test thread. 
         #[allow(clippy::let_underscore_future)]
         let _ = tokio::spawn(app.run());
 
-        let http_client = reqwest::Client::new();
+        // Create a client that can handle cookies
+        let http_client = Client::builder()
+            .cookie_store(true)
+            .build()
+            .expect("Failed to create HTTP client");
 
-        // Create new `TestApp` instance and return it
-        TestApp { address, http_client }
+        TestApp { 
+            address, 
+            http_client 
+        }
     }
 
     pub async fn get_root(&self) -> reqwest::Response {
