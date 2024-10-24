@@ -1,6 +1,6 @@
 use axum::{http::StatusCode, response::IntoResponse};
 use axum_extra::extract::{cookie, CookieJar};
-use std::time::Duration;
+use time::Duration;
 use crate::{
     domain::error::AuthAPIError,
     utils::{auth::validate_token, constants::JWT_COOKIE_NAME},
