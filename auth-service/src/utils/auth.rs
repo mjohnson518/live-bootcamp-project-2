@@ -21,7 +21,7 @@ fn create_auth_cookie(token: String) -> Cookie<'static> {
         .path("/") // apply cookie to all URLs on the server
         .http_only(true) // prevent JavaScript from accessing the cookie
         .same_site(SameSite::Lax)
-        .domain("localhost")
+        .domain("")
         .secure(false) // send cookie with "same-site" requests, and with "cross-site" top-level navigations.
         .build();
 

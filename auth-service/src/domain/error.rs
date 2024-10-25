@@ -1,9 +1,9 @@
-#[derive(Debug)]
+#[derive(Debug)]  // Add this line
 pub enum AuthAPIError {
     UserAlreadyExists,
     InvalidCredentials,
     IncorrectCredentials,
-    MissingToken,    
-    InvalidToken,    
+    MissingToken,
+    InvalidToken,
     UnexpectedError,
 }

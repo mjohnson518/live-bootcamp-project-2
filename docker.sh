@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Define the location of the .env file (change if needed)
+# Define the location of the .env file
 ENV_FILE="./auth-service/.env"
 
 # Check if the .env file exists
@@ -9,7 +9,7 @@ if ! [[ -f "$ENV_FILE" ]]; then
     exit 1
 fi
 
-# Read each line in the .env file (ignoring comments)
+# Read and export environment variables
 while IFS= read -r line; do
     # Skip blank lines and lines starting with #
     if [[ -n "$line" ]] && [[ "$line" != \#* ]]; then
@@ -21,6 +21,9 @@ while IFS= read -r line; do
     fi
 done < <(grep -v '^#' "$ENV_FILE")
 
-# Run docker-compose commands with exported variables
-docker-compose build
-docker-compose up
+# Export AUTH_SERVICE_IP
+export AUTH_SERVICE_IP=auth-service  # Changed from localhost
+export AUTH_SERVICE_PORT=3000
+
+# Run docker-compose once with all environment variables set
+docker compose up --build

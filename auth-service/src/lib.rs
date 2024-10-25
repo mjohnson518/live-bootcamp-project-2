@@ -42,6 +42,11 @@ impl Application {
             .allow_headers([
                 HeaderName::from_static("content-type"),
                 HeaderName::from_static("cookie"),
+                HeaderName::from_static("authorization"),
+            ])
+            .expose_headers([
+                HeaderName::from_static("set-cookie"),
+                HeaderName::from_static("authorization"),
             ])
             .allow_origin(allowed_origins);
 
@@ -76,13 +81,34 @@ pub struct ErrorResponse {
 
 impl IntoResponse for AuthAPIError {
     fn into_response(self) -> Response {
+        // Add error logging here
+        println!("Auth service error: {:?}", self);  // You can add this line to see all errors
+        
         let (status, error_message) = match self {
-            AuthAPIError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
-            AuthAPIError::InvalidCredentials => (StatusCode::BAD_REQUEST, "Invalid credentials"),
-            AuthAPIError::IncorrectCredentials => (StatusCode::UNAUTHORIZED, "Incorrect credentials"),
-            AuthAPIError::MissingToken => (StatusCode::BAD_REQUEST, "Missing token"),
-            AuthAPIError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid token"),
-            AuthAPIError::UnexpectedError => (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error"),
+            AuthAPIError::UserAlreadyExists => {
+                println!("User already exists error");  // Specific error logging
+                (StatusCode::CONFLICT, "User already exists")
+            },
+            AuthAPIError::InvalidCredentials => {
+                println!("Invalid credentials error");
+                (StatusCode::BAD_REQUEST, "Invalid credentials")
+            },
+            AuthAPIError::IncorrectCredentials => {
+                println!("Incorrect credentials error");
+                (StatusCode::UNAUTHORIZED, "Incorrect credentials")
+            },
+            AuthAPIError::MissingToken => {
+                println!("Missing token error");
+                (StatusCode::BAD_REQUEST, "Missing token")
+            },
+            AuthAPIError::InvalidToken => {
+                println!("Invalid token error");
+                (StatusCode::UNAUTHORIZED, "Invalid token")
+            },
+            AuthAPIError::UnexpectedError => {
+                println!("Unexpected server error");
+                (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
+            },
         };
 
         let body = Json(ErrorResponse {

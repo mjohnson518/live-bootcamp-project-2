@@ -4,16 +4,26 @@ services:
     image: letsgetrusty/app-service
     restart: "always"
     environment:
-      AUTH_SERVICE_IP: ${AUTH_SERVICE_IP}
+      AUTH_SERVICE_IP: auth-service  # Changed from localhost to auth-service
+      AUTH_SERVICE_PORT: 3000  # Add this if needed
     ports:
       - "8000:8000"
     depends_on:
       auth-service:
         condition: service_started
+    networks:
+      - app-network
+
   auth-service:
     image: letsgetrusty/auth-service
     restart: "always"
     environment:
-      JWT_SECRET: ${JWT_SECRET}  # Add this line
+      JWT_SECRET: ${JWT_SECRET}
     ports:
       - "3000:3000"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
