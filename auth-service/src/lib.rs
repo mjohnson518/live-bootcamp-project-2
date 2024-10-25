@@ -8,7 +8,7 @@ use axum::{
     serve::Serve, 
     Router, 
     response::{IntoResponse, Response, Json}, 
-    http::{StatusCode, Method}, 
+    http::{StatusCode, Method, HeaderName}, 
     routing::post
 };
 use std::error::Error;
@@ -37,10 +37,12 @@ impl Application {
         ];
 
         let cors = CorsLayer::new()
-            // Allow GET and POST requests
             .allow_methods([Method::GET, Method::POST])
-            // Allow cookies to be included in requests
             .allow_credentials(true)
+            .allow_headers([
+                HeaderName::from_static("content-type"),
+                HeaderName::from_static("cookie"),
+            ])
             .allow_origin(allowed_origins);
 
         let router = Router::new()
