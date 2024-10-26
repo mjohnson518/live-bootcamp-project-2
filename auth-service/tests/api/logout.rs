@@ -54,36 +54,26 @@ async fn should_return_200_if_valid_jwt_cookie() {
     })).await;
     assert_eq!(login_response.status().as_u16(), 200);
 
+    // Get the token from the cookie before logout
+    let jwt_cookie = login_response.cookies()
+        .find(|c| c.name() == JWT_COOKIE_NAME)
+        .expect("No JWT cookie found");
+    let token = jwt_cookie.value().to_string();
+
     // Try to logout
     let logout_response = app.logout().await;
     assert_eq!(logout_response.status().as_u16(), 200);
-}
 
-#[tokio::test]
-async fn should_return_400_if_logout_called_twice_in_a_row() {
-    let app = TestApp::new().await;
-    let email = get_random_email();
-    
-    // First, create a user
-    let signup_response = app.post_signup(&json!({
-        "email": email,
-        "password": "password123",
-        "requires2FA": false
-    })).await;
-    assert_eq!(signup_response.status().as_u16(), 201);
+    // Verify token was added to banned token store
+    let is_banned = app.banned_token_store
+        .read()
+        .await
+        .contains_token(&token)
+        .await
+        .unwrap();
+    assert!(is_banned, "Token should be in banned token store");
 
-    // Log in to get JWT cookie
-    let login_response = app.post_login(&json!({
-        "email": email,
-        "password": "password123"
-    })).await;
-    assert_eq!(login_response.status().as_u16(), 200);
-
-    // First logout should succeed
-    let first_logout = app.logout().await;
-    assert_eq!(first_logout.status().as_u16(), 200);
-
-    // Second logout should fail
+    // Second logout should fail with 400 Missing Token
     let second_logout = app.logout().await;
     assert_eq!(second_logout.status().as_u16(), 400);
     

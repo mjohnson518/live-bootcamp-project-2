@@ -3,7 +3,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use crate::domain::error::AuthAPIError;
 use crate::utils::auth::validate_token;
 
@@ -12,13 +12,28 @@ pub struct VerifyTokenRequest {
     token: String,
 }
 
+#[derive(Serialize)]
+pub struct VerifyTokenResponse {
+    message: String,
+}
+
 pub async fn verify_token(
     Json(payload): Json<VerifyTokenRequest>,
 ) -> Result<impl IntoResponse, AuthAPIError> {
-    // Validate the token
+    println!("Verify token endpoint called with token: {}", payload.token);  // Add this
+    
     validate_token(&payload.token)
         .await
-        .map_err(|_| AuthAPIError::InvalidToken)?;
+        .map_err(|e| {
+            println!("Token validation failed: {:?}", e);  // Add this
+            AuthAPIError::InvalidToken
+        })?;
     
-    Ok(StatusCode::OK)
+    println!("Token validated successfully");  // Add this
+    Ok((
+        StatusCode::OK,
+        Json(VerifyTokenResponse {
+            message: "Token is valid".to_string()
+        })
+    ))
 }
