@@ -10,9 +10,10 @@ use crate::{
     utils::{auth::validate_token, constants::JWT_COOKIE_NAME},
     app_state::AppState,  // Added
 };
+use std::ops::Deref;
 
 pub async fn logout(
-    State(state): State<AppState>,  // Added
+    State(state): State<AppState>,
     jar: CookieJar,
 ) -> Result<(CookieJar, impl IntoResponse), AuthAPIError> {
     // Get JWT cookie
@@ -23,15 +24,15 @@ pub async fn logout(
     let token = cookie.value();
     
     // Validate the token
-    validate_token(token)
+    let banned_token_store = state.banned_token_store.read().await;
+    validate_token(token, banned_token_store.deref())
         .await
         .map_err(|_| AuthAPIError::InvalidToken)?;
+    drop(banned_token_store);
 
     // Add token to banned token store
-    state
-        .banned_token_store
-        .write()
-        .await
+    let mut banned_token_store = state.banned_token_store.write().await;
+    banned_token_store
         .store_token(token.to_string())
         .await
         .map_err(|_| AuthAPIError::UnexpectedError)?;

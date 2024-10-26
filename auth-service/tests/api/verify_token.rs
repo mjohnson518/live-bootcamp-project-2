@@ -59,3 +59,49 @@ async fn should_return_422_if_malformed_input() {
     
     assert_eq!(422, response.status().as_u16());
 }
+
+#[tokio::test]
+async fn should_return_401_if_banned_token() {
+    let app = TestApp::new().await;
+    let email = get_random_email();
+    
+    // First sign up a user
+    let signup_body = json!({
+        "email": email,
+        "password": "password123",
+        "requires2FA": false
+    });
+    app.post_signup(&signup_body).await;
+    
+    // Then login to get a valid token
+    let login_body = json!({
+        "email": email,
+        "password": "password123"
+    });
+    let login_response = app.post_login(&login_body).await;
+    
+    // Get the token
+    let token = login_response.cookies()
+        .find(|c| c.name() == JWT_COOKIE_NAME)
+        .expect("No JWT cookie found")
+        .value()
+        .to_string();
+    
+    // Add the token to the banned token store
+    app.banned_token_store
+        .write()
+        .await
+        .store_token(token.clone())
+        .await
+        .expect("Failed to store token");
+    
+    // Verify the token - should fail because it's banned
+    let response = app.post_verify_token(&json!({
+        "token": token
+    })).await;
+    
+    assert_eq!(401, response.status().as_u16());
+    
+    let error_response: ErrorResponse = response.json().await.unwrap();
+    assert_eq!("Invalid token", error_response.error);
+}

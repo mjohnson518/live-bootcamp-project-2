@@ -2,10 +2,15 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
     Json,
+    extract::State,  // Add this
 };
 use serde::{Deserialize, Serialize};
-use crate::domain::error::AuthAPIError;
-use crate::utils::auth::validate_token;
+use crate::{
+    domain::error::AuthAPIError,
+    utils::auth::validate_token,
+    app_state::AppState,  // Add this
+};
+use std::ops::Deref;
 
 #[derive(Deserialize)]
 pub struct VerifyTokenRequest {
@@ -18,18 +23,14 @@ pub struct VerifyTokenResponse {
 }
 
 pub async fn verify_token(
+    State(state): State<AppState>,
     Json(payload): Json<VerifyTokenRequest>,
 ) -> Result<impl IntoResponse, AuthAPIError> {
-    println!("Verify token endpoint called with token: {}", payload.token);  // Add this
-    
-    validate_token(&payload.token)
+    let banned_token_store = state.banned_token_store.read().await;
+    validate_token(&payload.token, banned_token_store.deref())
         .await
-        .map_err(|e| {
-            println!("Token validation failed: {:?}", e);  // Add this
-            AuthAPIError::InvalidToken
-        })?;
+        .map_err(|_| AuthAPIError::InvalidToken)?;
     
-    println!("Token validated successfully");  // Add this
     Ok((
         StatusCode::OK,
         Json(VerifyTokenResponse {
