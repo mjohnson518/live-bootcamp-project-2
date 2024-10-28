@@ -38,7 +38,16 @@ pub async fn login(
     State(state): State<AppState>,
     jar: CookieJar,
     Json(request): Json<LoginRequest>,
-) -> (CookieJar, Result<impl IntoResponse, AuthAPIError>) {
+) -> impl IntoResponse {
+    let (jar, result) = process_login(state, jar, request).await;
+    (jar, result)
+}
+
+async fn process_login(
+    state: AppState,
+    jar: CookieJar,
+    request: LoginRequest,
+) -> (CookieJar, Result<(StatusCode, Json<LoginResponse>), AuthAPIError>) {
     let email = match Email::parse(request.email) {
         Ok(email) => email,
         Err(_) => return (jar, Err(AuthAPIError::InvalidCredentials)),
@@ -90,9 +99,14 @@ async fn handle_2fa(
         return (jar, Err(AuthAPIError::UnexpectedError));
     }
 
-    // TODO: In the next sprint, we'll send the 2FA code via email
-    // For now, just log it to the console
-    println!("2FA code for {}: {}", email.as_ref(), two_fa_code.as_ref());
+    // Send the 2FA code via email
+    if let Err(_) = state.email_client.send_email(
+        email,
+        "Your 2FA Code",
+        &format!("Your verification code is: {}", two_fa_code.as_ref()),
+    ).await {
+        return (jar, Err(AuthAPIError::UnexpectedError));
+    }
 
     // Return the login attempt ID to the client
     let response = Json(LoginResponse::TwoFactorAuth(TwoFactorAuthResponse {
