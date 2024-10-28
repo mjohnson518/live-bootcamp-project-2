@@ -1,14 +1,14 @@
 use axum::{
     http::StatusCode, 
     response::IntoResponse,
-    extract::State,  // Added
+    extract::State,  
 };
 use axum_extra::extract::{cookie, CookieJar};
 use time::Duration;
 use crate::{
     domain::error::AuthAPIError,
     utils::{auth::validate_token, constants::JWT_COOKIE_NAME},
-    app_state::AppState,  // Added
+    app_state::AppState,  
 };
 use std::ops::Deref;
 

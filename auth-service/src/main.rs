@@ -5,7 +5,8 @@ use auth_service::{
     app_state::AppState, 
     services::{
         hashmap_user_store::HashmapUserStore,
-        hashset_banned_token_store::HashsetBannedTokenStore,  // Added
+        hashset_banned_token_store::HashsetBannedTokenStore,  
+        hashmap_two_fa_code_store::HashmapTwoFACodeStore,
     },
     utils::constants::prod,
 };
@@ -14,9 +15,14 @@ use auth_service::{
 async fn main() {
     println!("Starting application...");
     let user_store = Arc::new(RwLock::new(HashmapUserStore::default()));
-    let banned_token_store = Arc::new(RwLock::new(HashsetBannedTokenStore::default()));  // Added
+    let banned_token_store = Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
+    let two_fa_code_store = Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
     
-    let app_state = AppState::new(user_store, banned_token_store);  // Updated
+    let app_state = AppState::new(
+        user_store, 
+        banned_token_store,
+        two_fa_code_store,
+    );
     
     let app = match Application::build(app_state, prod::APP_ADDRESS).await {
         Ok(app) => {

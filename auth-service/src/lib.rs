@@ -4,6 +4,10 @@ pub mod services;
 pub mod app_state;
 pub mod utils;
 
+// Re-export important types at the crate root
+pub use routes::login::{LoginResponse, TwoFactorAuthResponse};
+pub use domain::error::AuthAPIError;
+
 use axum::{
     serve::Serve, 
     Router, 
@@ -15,7 +19,6 @@ use std::error::Error;
 use tower_http::{cors::CorsLayer, services::ServeDir};
 use app_state::AppState;
 use serde::{Deserialize, Serialize};
-use domain::error::AuthAPIError;
 
 pub struct Application {
     server: Serve<Router, Router>,
