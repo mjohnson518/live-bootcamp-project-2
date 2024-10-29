@@ -137,7 +137,7 @@ impl TestApp {
 
     pub async fn post_verify_2fa<Body>(&self, body: &Body) -> reqwest::Response
     where
-        Body: Serialize,
+        Body: serde::Serialize,
     {
         self.http_client
             .post(&format!("{}/verify_2fa", &self.address))
