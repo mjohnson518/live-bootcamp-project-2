@@ -19,6 +19,7 @@ use std::error::Error;
 use tower_http::{cors::CorsLayer, services::ServeDir};
 use app_state::AppState;
 use serde::{Deserialize, Serialize};
+use sqlx::{postgres::PgPoolOptions, PgPool};
 
 pub struct Application {
     server: Serve<Router, Router>,
@@ -120,4 +121,12 @@ impl IntoResponse for AuthAPIError {
 
         (status, body).into_response()
     }
+}
+
+pub async fn get_postgres_pool(url: &str) -> Result<PgPool, sqlx::Error> {
+    // Create a new PostgreSQL connection pool with max 5 connections
+    PgPoolOptions::new()
+        .max_connections(5)
+        .connect(url)
+        .await
 }
