@@ -1,28 +1,31 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use sqlx::PgPool; 
+use sqlx::PgPool;
 use auth_service::{
     Application, 
     app_state::AppState, 
-    services::{
-        hashmap_user_store::HashmapUserStore,
+    services::data_stores::{  // Updated import path
+        postgres_user_store::PostgresUserStore,
         hashset_banned_token_store::HashsetBannedTokenStore,
         hashmap_two_fa_code_store::HashmapTwoFACodeStore,
-        mock_email_client::MockEmailClient,
     },
-    utils::constants::{DATABASE_URL, prod},  
+    services::mock_email_client::MockEmailClient,
+    utils::constants::{DATABASE_URL, prod},
     get_postgres_pool,
 };
 
 #[tokio::main]
 async fn main() {
     println!("Starting application...");
-    println!("DATABASE_URL: {}", *auth_service::utils::constants::DATABASE_URL);
-    let user_store = Arc::new(RwLock::new(HashmapUserStore::default()));
+    
+    // Configure PostgreSQL and get connection pool
+    let pg_pool = configure_postgresql().await;
+    
+    // Initialize stores with PostgreSQL
+    let user_store = Arc::new(RwLock::new(PostgresUserStore::new(pg_pool)));
     let banned_token_store = Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
     let two_fa_code_store = Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
     let email_client = Arc::new(MockEmailClient::default());
-    let pg_pool = configure_postgresql().await;
     
     let app_state = AppState::new(
         user_store,

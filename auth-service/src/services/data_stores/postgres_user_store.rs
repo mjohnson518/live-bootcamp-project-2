@@ -62,7 +62,8 @@ impl UserStore for PostgresUserStore {
         Ok(())
     }
 
-    async fn get_user(&self, email: &Email) -> Result<&User, UserStoreError> {
+    // Change the return type to owned User instead of reference
+    async fn get_user(&self, email: &Email) -> Result<User, UserStoreError> {
         let user = sqlx::query!(
             r#"
             SELECT email, password_hash as "password_hash!", requires_2fa
@@ -77,13 +78,11 @@ impl UserStore for PostgresUserStore {
         .ok_or(UserStoreError::UserNotFound)?;
 
         // Convert database record to User struct
-        let user = User {
+        Ok(User {
             email: Email::parse(user.email).map_err(|_| UserStoreError::UnexpectedError)?,
             password: Password::parse(user.password_hash).map_err(|_| UserStoreError::UnexpectedError)?,
             requires_2fa: user.requires_2fa,
-        };
-
-        Ok(&user)
+        })
     }
 
     async fn validate_user(&self, email: &Email, password: &Password) -> Result<(), UserStoreError> {

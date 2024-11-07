@@ -1,35 +1,39 @@
 use std::collections::HashMap;
 use async_trait::async_trait;
-use crate::domain::user::User;
-use crate::domain::email::Email;
-use crate::domain::password::Password;
-use crate::domain::data_stores::{UserStore, UserStoreError};
+use crate::domain::{
+    data_stores::{UserStore, UserStoreError},
+    email::Email,
+    password::Password,
+    user::User,
+};
 
 #[derive(Default)]
 pub struct HashmapUserStore {
-    users: HashMap<Email, User>,
+    users: HashMap<String, User>,
 }
 
 #[async_trait]
 impl UserStore for HashmapUserStore {
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
-        if self.users.contains_key(&user.email) {
-            Err(UserStoreError::UserAlreadyExists)
-        } else {
-            self.users.insert(user.email.clone(), user);
-            Ok(())
+        let email = user.email.as_ref().to_string();
+        if self.users.contains_key(&email) {
+            return Err(UserStoreError::UserAlreadyExists);
         }
+        self.users.insert(email, user);
+        Ok(())
     }
 
-    async fn get_user(&self, email: &Email) -> Result<&User, UserStoreError> {
-        self.users.get(email).ok_or(UserStoreError::UserNotFound)
+    async fn get_user(&self, email: &Email) -> Result<User, UserStoreError> {
+        self.users
+            .get(email.as_ref())
+            .cloned()  // Clone the user to return ownership
+            .ok_or(UserStoreError::UserNotFound)
     }
 
     async fn validate_user(&self, email: &Email, password: &Password) -> Result<(), UserStoreError> {
-        match self.users.get(email) {
-            Some(user) if user.password == *password => Ok(()),
-            Some(_) => Err(UserStoreError::InvalidCredentials),
-            None => Err(UserStoreError::UserNotFound),
+        match self.users.get(email.as_ref()) {
+            Some(user) if user.password.as_ref() == password.as_ref() => Ok(()),
+            _ => Err(UserStoreError::InvalidCredentials),
         }
     }
 }
