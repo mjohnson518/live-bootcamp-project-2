@@ -27,11 +27,13 @@ pub enum LoginResponse {
 }
 
 // If a user requires 2FA, this JSON body should be returned
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Clone, PartialEq, Deserialize)]
 pub struct TwoFactorAuthResponse {
     pub message: String,
     #[serde(rename = "loginAttemptId")]
     pub login_attempt_id: String,
+    #[serde(rename = "2FACode")]
+    two_fa_code: String,
 }
 
 pub async fn login(

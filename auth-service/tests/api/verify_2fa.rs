@@ -34,6 +34,7 @@ async fn should_return_400_if_invalid_input() {
         .await
         .expect("Failed to parse error response");
     assert_eq!(error_response.error, "Invalid credentials");
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -63,6 +64,7 @@ async fn should_return_401_if_incorrect_credentials() {
         .await
         .expect("Failed to parse error response");
     assert_eq!(error_response.error, "Incorrect credentials");
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -112,6 +114,7 @@ async fn should_return_200_if_correct_code() {
         .find(|cookie| cookie.name() == JWT_COOKIE_NAME)
         .expect("No auth cookie found");
     assert!(!auth_cookie.value().is_empty());
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -159,4 +162,5 @@ async fn should_return_401_if_same_code_twice() {
     // Second verification with same code should fail
     let response2 = app.post_verify_2fa(&verify_body).await;
     assert_eq!(response2.status().as_u16(), 401);
+    app.clean_up().await;
 }

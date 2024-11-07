@@ -25,6 +25,7 @@ async fn should_return_422_if_malformed_input() {
             test_case
         );
     }
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -42,6 +43,7 @@ async fn should_return_201_if_valid_input() {
 
     // Assert
     assert_eq!(response.status().as_u16(), 201);
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -67,6 +69,7 @@ async fn should_return_400_if_invalid_input() {
         let error_response: ErrorResponse = response.json().await.expect("Failed to parse error response");
         assert_eq!(error_response.error, "Invalid credentials");
     }
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -90,4 +93,5 @@ async fn should_return_409_if_email_already_exists() {
 
     let error_response: ErrorResponse = response.json().await.expect("Failed to parse error response");
     assert_eq!(error_response.error, "User already exists");
+    app.clean_up().await;
 }

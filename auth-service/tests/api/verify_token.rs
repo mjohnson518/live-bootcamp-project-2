@@ -38,6 +38,7 @@ async fn should_return_200_valid_token() {
     
     let json_response: serde_json::Value = response.json().await.unwrap();
     assert_eq!(json_response["message"], "Token is valid");
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -58,6 +59,7 @@ async fn should_return_422_if_malformed_input() {
     })).await;
     
     assert_eq!(422, response.status().as_u16());
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -104,4 +106,5 @@ async fn should_return_401_if_banned_token() {
     
     let error_response: ErrorResponse = response.json().await.unwrap();
     assert_eq!("Invalid token", error_response.error);
+    app.clean_up().await;
 }

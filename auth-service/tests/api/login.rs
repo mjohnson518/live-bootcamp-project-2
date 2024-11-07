@@ -14,6 +14,7 @@ async fn should_return_422_if_malformed_credentials() {
     let app = TestApp::new().await;
     let response = app.post_login(&json!({})).await;
     assert_eq!(response.status().as_u16(), 422);
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -32,6 +33,7 @@ async fn should_return_400_if_invalid_input() {
         .await
         .expect("Failed to parse error response");
     assert_eq!(error_response.error, "Invalid credentials");
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -60,6 +62,7 @@ async fn should_return_401_if_incorrect_credentials() {
         .await
         .expect("Failed to parse error response");
     assert_eq!(error_response.error, "Incorrect credentials");
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -90,6 +93,7 @@ async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
         .find(|cookie| cookie.name() == JWT_COOKIE_NAME)
         .expect("No auth cookie found");
     assert!(!auth_cookie.value().is_empty());
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -147,4 +151,5 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
         },
         Err(e) => panic!("Failed to retrieve stored 2FA code: {:?}", e),
     }
+    app.clean_up().await;
 }
