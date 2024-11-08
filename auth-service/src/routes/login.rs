@@ -33,7 +33,7 @@ pub struct TwoFactorAuthResponse {
     #[serde(rename = "loginAttemptId")]
     pub login_attempt_id: String,
     #[serde(rename = "2FACode")]
-    two_fa_code: String,
+    pub two_fa_code: String,
 }
 
 pub async fn login(
@@ -105,7 +105,7 @@ async fn handle_2fa(
     if let Err(_) = state.email_client.send_email(
         email,
         "Your 2FA Code",
-        &format!("Your verification code is: {}", two_fa_code.as_ref()),
+        &format!("Your verification code is: {}", two_fa_code.clone()),
     ).await {
         return (jar, Err(AuthAPIError::UnexpectedError));
     }
@@ -114,6 +114,7 @@ async fn handle_2fa(
     let response = Json(LoginResponse::TwoFactorAuth(TwoFactorAuthResponse {
         message: "2FA required".to_owned(),
         login_attempt_id: login_attempt_id.as_ref().to_string(),
+        two_fa_code: two_fa_code.to_string(),
     }));
 
     (jar, Ok((StatusCode::PARTIAL_CONTENT, response)))

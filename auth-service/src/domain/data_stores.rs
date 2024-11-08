@@ -4,6 +4,7 @@ use crate::domain::email::Email;
 use crate::domain::password::Password;
 use uuid::Uuid;  
 use rand::Rng; 
+use std::fmt;
 
 #[async_trait]
 pub trait UserStore {
@@ -125,5 +126,11 @@ impl PadLeft for String {
             0
         };
         pad_char.to_string().repeat(padding) + &self
+    }
+}
+
+impl fmt::Display for TwoFACode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }

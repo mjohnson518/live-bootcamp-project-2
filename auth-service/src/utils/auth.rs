@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::domain::{email::Email, data_stores::BannedTokenStore};
 use super::constants::{JWT_SECRET, JWT_COOKIE_NAME};
 
+
 // Create cookie with a new JWT auth token
 pub fn generate_auth_cookie(email: &Email) -> Result<Cookie<'static>, GenerateTokenError> {
     let token = generate_auth_token(email)?;
@@ -94,7 +95,7 @@ pub struct Claims {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::services::hashset_banned_token_store::HashsetBannedTokenStore;
+    use crate::services::data_stores::hashset_banned_token_store::HashsetBannedTokenStore;
 
     #[tokio::test]
     async fn test_generate_auth_cookie() {

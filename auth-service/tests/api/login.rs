@@ -132,6 +132,7 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
     
     // Verify that a login attempt ID was returned and not empty
     assert!(!response_body.login_attempt_id.is_empty());
+    assert!(!response_body.two_fa_code.is_empty());
 
     // Get access to the 2FA code store
     let two_fa_store = app.two_fa_code_store.read().await;
@@ -147,6 +148,11 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
                 stored_login_attempt_id.as_ref(),
                 &response_body.login_attempt_id,
                 "Stored login attempt ID doesn't match the one sent to the client"
+            );
+            assert_eq!(
+                stored_two_fa_code.as_ref(),
+                &response_body.two_fa_code,
+                "Stored 2FA code doesn't match the one sent to the client"
             );
         },
         Err(e) => panic!("Failed to retrieve stored 2FA code: {:?}", e),

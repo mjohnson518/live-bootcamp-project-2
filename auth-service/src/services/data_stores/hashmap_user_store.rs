@@ -81,3 +81,19 @@ mod tests {
         assert_eq!(store.validate_user(&nonexistent_email, &password).await, Err(UserStoreError::UserNotFound));
     }
 }
+
+#[tokio::test]
+async fn test_get_user() {
+    let mut store = HashmapUserStore::default();
+    let email = Email::parse("test@example.com".to_string()).unwrap();
+    let password = Password::parse("password123".to_string()).unwrap();
+    let user = User::new(email.clone(), password, false);
+    store.add_user(user.clone()).await.unwrap();
+    
+    let retrieved_user = store.get_user(&email).await.unwrap();
+    let retrieved_email = retrieved_user.email.as_ref().to_string();
+    assert_eq!(retrieved_email, "test@example.com");
+    
+    let nonexistent_email = Email::parse("nonexistent@example.com".to_string()).unwrap();
+    assert_eq!(store.get_user(&nonexistent_email).await, Err(UserStoreError::UserNotFound));
+}

@@ -31,7 +31,7 @@ pub async fn logout(
     drop(banned_token_store);
 
     // Add token to banned token store
-    let mut banned_token_store = state.banned_token_store.write().await;
+    let banned_token_store = state.banned_token_store.write().await;
     banned_token_store
         .store_token(token.to_string())
         .await

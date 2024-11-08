@@ -6,11 +6,10 @@ use crate::{
         error::AuthAPIError, 
         user::User, 
         email::Email, 
-        password::Password, 
-        data_stores::UserStore
+        password::Password   
     },
 };
-use futures_util::TryFutureExt;
+
 
 pub async fn signup(
     State(state): State<AppState>,
