@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 use crate::domain::{
     data_stores::{LoginAttemptId, TwoFACode, TwoFACodeStore, TwoFACodeStoreError},
-    Email,
+    email::Email,
 };
 
 pub struct RedisTwoFACodeStore {
