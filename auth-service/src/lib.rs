@@ -38,7 +38,6 @@ impl Application {
         // Allow the app service(running on our local machine and in production) to call the auth service
         let allowed_origins = [
             "http://localhost:8000".parse()?,
-            // TODO: Replace [YOUR_DROPLET_IP] with your Droplet IP address
             "http://68.183.141.53:8000".parse()?,
         ];
 
@@ -91,33 +90,40 @@ pub struct ErrorResponse {
     pub error: String,
 }
 
+fn log_error_chain(e: &(dyn Error + 'static)) {
+    let separator = "\n-----------------------------------------------------------------------------------\n";
+    let mut report = format!("{}{:?}\n", separator, e);
+    let mut current = e.source();
+    while let Some(cause) = current {
+        let str = format!("Caused by:\n\n{:?}", cause);
+        report = format!("{}\n{}", report, str);
+        current = cause.source();
+    }
+    report = format!("{}\n{}", report, separator);
+    tracing::error!("{}", report);
+}
+
 impl IntoResponse for AuthAPIError {
     fn into_response(self) -> Response {
-        tracing::error!("Auth service error: {:?}", self);
+        log_error_chain(&self);
         
         let (status, error_message) = match self {
             AuthAPIError::UserAlreadyExists => {
-                tracing::error!("User already exists error");
                 (StatusCode::CONFLICT, "User already exists")
             },
             AuthAPIError::InvalidCredentials => {
-                tracing::error!("Invalid credentials error");
                 (StatusCode::BAD_REQUEST, "Invalid credentials")
             },
             AuthAPIError::IncorrectCredentials => {
-                tracing::error!("Incorrect credentials error");
                 (StatusCode::UNAUTHORIZED, "Incorrect credentials")
             },
             AuthAPIError::MissingToken => {
-                tracing::error!("Missing token error");
                 (StatusCode::BAD_REQUEST, "Missing token")
             },
             AuthAPIError::InvalidToken => {
-                tracing::error!("Invalid token error");
                 (StatusCode::UNAUTHORIZED, "Invalid token")
             },
-            AuthAPIError::UnexpectedError => {
-                tracing::error!("Unexpected server error");
+            AuthAPIError::UnexpectedError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
             },
         };
@@ -131,7 +137,6 @@ impl IntoResponse for AuthAPIError {
 }
 
 pub async fn get_postgres_pool(url: &str) -> Result<PgPool, sqlx::Error> {
-    // Create a new PostgreSQL connection pool with max 5 connections
     PgPoolOptions::new()
         .max_connections(5)
         .connect(url)

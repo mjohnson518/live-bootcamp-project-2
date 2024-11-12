@@ -5,6 +5,8 @@ use crate::domain::password::Password;
 use uuid::Uuid;  
 use rand::Rng; 
 use std::fmt;
+use thiserror::Error;
+use color_eyre::eyre::Report;
 
 #[async_trait]
 pub trait UserStore {
@@ -13,12 +15,16 @@ pub trait UserStore {
     async fn validate_user(&self, email: &Email, password: &Password) -> Result<(), UserStoreError>;
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Error, PartialEq)]
 pub enum UserStoreError {
+    #[error("User already exists")]
     UserAlreadyExists,
+    #[error("User not found")]
     UserNotFound,
+    #[error("Invalid credentials")]
     InvalidCredentials,
-    UnexpectedError,
+    #[error("Unexpected error")]
+    UnexpectedError(#[source] Report),
 }
 
 #[async_trait::async_trait]
@@ -27,8 +33,9 @@ pub trait BannedTokenStore: Send + Sync {
     async fn contains_token(&self, token: &str) -> Result<bool, BannedTokenStoreError>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum BannedTokenStoreError {
+    #[error("Unexpected error")]
     UnexpectedError,
 }
 
@@ -49,9 +56,11 @@ pub trait TwoFACodeStore {
     ) -> Result<(LoginAttemptId, TwoFACode), TwoFACodeStoreError>;
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Error, PartialEq)]
 pub enum TwoFACodeStoreError {
+    #[error("Login attempt ID not found")]
     LoginAttemptIdNotFound,
+    #[error("Unexpected error")]
     UnexpectedError,
 }
 
