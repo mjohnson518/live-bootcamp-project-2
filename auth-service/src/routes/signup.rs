@@ -10,27 +10,44 @@ use crate::{
     },
 };
 
-
+#[tracing::instrument(name = "Signup", skip(state), fields(email = %request.email))]
 pub async fn signup(
     State(state): State<AppState>,
     Json(request): Json<SignupRequest>, 
 ) -> Result<impl IntoResponse, AuthAPIError> {
+    tracing::debug!("Parsing credentials");
+    
     let email = Email::parse(request.email)
-        .map_err(|_| AuthAPIError::InvalidCredentials)?;
+        .map_err(|_| {
+            tracing::error!("Invalid email format");
+            AuthAPIError::InvalidCredentials
+        })?;
     
     let password = Password::parse(request.password)
-        .map_err(|_| AuthAPIError::InvalidCredentials)?;
+        .map_err(|_| {
+            tracing::error!("Invalid password format");
+            AuthAPIError::InvalidCredentials
+        })?;
 
     let user = User::new(email, password, request.requires_2fa);
+    
+    tracing::debug!("Acquiring write lock on user store");
     let mut user_store = state.user_store.write().await;
 
+    tracing::debug!("Checking if user already exists");
     if user_store.get_user(&user.email).await.is_ok() {
+        tracing::warn!("Attempted to create account with existing email");
         return Err(AuthAPIError::UserAlreadyExists);
     }
 
+    tracing::debug!("Adding user to database");
     user_store.add_user(user).await
-        .map_err(|_| AuthAPIError::UnexpectedError)?;
+        .map_err(|e| {
+            tracing::error!("Failed to add user: {:?}", e);
+            AuthAPIError::UnexpectedError
+        })?;
 
+    tracing::info!("User created successfully");
     let response = Json(SignupResponse {
         message: "User created successfully!".to_string(),
     });

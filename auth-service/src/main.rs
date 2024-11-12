@@ -10,14 +10,17 @@ use auth_service::{
         RedisTwoFACodeStore,
     },
     services::mock_email_client::MockEmailClient,
-    utils::constants::{DATABASE_URL, REDIS_HOST_NAME, prod},
+    utils::{constants::{DATABASE_URL, REDIS_HOST_NAME, prod}, tracing::init_tracing},
     get_postgres_pool,
     get_redis_client,
 };
 
 #[tokio::main]
 async fn main() {
-    println!("Starting application...");
+    // Initialize tracing
+    init_tracing();
+    
+    tracing::info!("Starting application...");
     
     // Configure PostgreSQL and get connection pool
     let pg_pool = configure_postgresql().await;
@@ -42,18 +45,18 @@ async fn main() {
     
     let app = match Application::build(app_state, prod::APP_ADDRESS).await {
         Ok(app) => {
-            println!("Application built successfully. Listening on {}", app.address);
+            tracing::info!("Application built successfully. Listening on {}", app.address);
             app
         },
         Err(e) => {
-            eprintln!("Failed to build app: {}", e);
+            tracing::error!("Failed to build app: {}", e);
             return;
         }
     };
 
-    println!("Running application...");
+    tracing::info!("Running application...");
     if let Err(e) = app.run().await {
-        eprintln!("Failed to run app: {}", e);
+        tracing::error!("Failed to run app: {}", e);
     }
 }
 

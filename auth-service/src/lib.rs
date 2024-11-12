@@ -16,11 +16,12 @@ use axum::{
     routing::post
 };
 use std::error::Error;
-use tower_http::{cors::CorsLayer, services::ServeDir};
+use tower_http::{cors::CorsLayer, services::ServeDir, trace::TraceLayer};
 use app_state::AppState;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use redis::{Client, RedisResult};
+use utils::tracing::{make_span_with_request_id, on_request, on_response};
 
 pub struct Application {
     server: Serve<Router, Router>,
@@ -64,7 +65,13 @@ impl Application {
             .route("/verify_token", post(routes::verify_token))
             .route("/test", axum::routing::get(|| async { "Test route" }))
             .with_state(state.clone())
-            .layer(cors); // Add CORS config to our Axum router
+            .layer(cors)
+            .layer(
+                TraceLayer::new_for_http()
+                    .make_span_with(make_span_with_request_id)
+                    .on_request(on_request)
+                    .on_response(on_response),
+            );
 
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?.to_string();
@@ -74,7 +81,7 @@ impl Application {
     }
 
     pub async fn run(self) -> Result<(), std::io::Error> {
-        println!("listening on {}", &self.address);
+        tracing::info!("listening on {}", &self.address);
         self.server.await
     }
 }
@@ -86,32 +93,31 @@ pub struct ErrorResponse {
 
 impl IntoResponse for AuthAPIError {
     fn into_response(self) -> Response {
-        // Add error logging here
-        println!("Auth service error: {:?}", self);  // You can add this line to see all errors
+        tracing::error!("Auth service error: {:?}", self);
         
         let (status, error_message) = match self {
             AuthAPIError::UserAlreadyExists => {
-                println!("User already exists error");  // Specific error logging
+                tracing::error!("User already exists error");
                 (StatusCode::CONFLICT, "User already exists")
             },
             AuthAPIError::InvalidCredentials => {
-                println!("Invalid credentials error");
+                tracing::error!("Invalid credentials error");
                 (StatusCode::BAD_REQUEST, "Invalid credentials")
             },
             AuthAPIError::IncorrectCredentials => {
-                println!("Incorrect credentials error");
+                tracing::error!("Incorrect credentials error");
                 (StatusCode::UNAUTHORIZED, "Incorrect credentials")
             },
             AuthAPIError::MissingToken => {
-                println!("Missing token error");
+                tracing::error!("Missing token error");
                 (StatusCode::BAD_REQUEST, "Missing token")
             },
             AuthAPIError::InvalidToken => {
-                println!("Invalid token error");
+                tracing::error!("Invalid token error");
                 (StatusCode::UNAUTHORIZED, "Invalid token")
             },
             AuthAPIError::UnexpectedError => {
-                println!("Unexpected server error");
+                tracing::error!("Unexpected server error");
                 (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
             },
         };
