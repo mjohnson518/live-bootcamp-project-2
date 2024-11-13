@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::sync::RwLock;
 use async_trait::async_trait;
+use color_eyre::eyre::eyre;
 use crate::domain::data_stores::{BannedTokenStore, BannedTokenStoreError};
 
 #[derive(Default)]
@@ -19,20 +20,19 @@ impl HashsetBannedTokenStore {
 #[async_trait]
 impl BannedTokenStore for HashsetBannedTokenStore {
     async fn store_token(&self, token: String) -> Result<(), BannedTokenStoreError> {
-        match self.tokens.write() {
-            Ok(mut tokens) => {
+        self.tokens
+            .write()
+            .map_err(|e| BannedTokenStoreError::UnexpectedError(eyre!(e).into()))
+            .map(|mut tokens| {
                 tokens.insert(token);
-                Ok(())
-            }
-            Err(_) => Err(BannedTokenStoreError::UnexpectedError),
-        }
+            })
     }
 
     async fn contains_token(&self, token: &str) -> Result<bool, BannedTokenStoreError> {
-        match self.tokens.read() {
-            Ok(tokens) => Ok(tokens.contains(token)),
-            Err(_) => Err(BannedTokenStoreError::UnexpectedError),
-        }
+        self.tokens
+            .read()
+            .map_err(|e| BannedTokenStoreError::UnexpectedError(eyre!(e).into()))
+            .map(|tokens| tokens.contains(token))
     }
 }
 

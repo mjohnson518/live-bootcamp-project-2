@@ -15,7 +15,7 @@ pub trait UserStore {
     async fn validate_user(&self, email: &Email, password: &Password) -> Result<(), UserStoreError>;
 }
 
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error)]
 pub enum UserStoreError {
     #[error("User already exists")]
     UserAlreadyExists,
@@ -27,6 +27,19 @@ pub enum UserStoreError {
     UnexpectedError(#[source] Report),
 }
 
+
+impl PartialEq for UserStoreError {
+    fn eq(&self, other: &Self) -> bool {
+        matches!(
+            (self, other),
+            (Self::UserAlreadyExists, Self::UserAlreadyExists)
+            | (Self::UserNotFound, Self::UserNotFound)
+            | (Self::InvalidCredentials, Self::InvalidCredentials)
+            | (Self::UnexpectedError(_), Self::UnexpectedError(_))
+        )
+    }
+}
+
 #[async_trait::async_trait]
 pub trait BannedTokenStore: Send + Sync {
     async fn store_token(&self, token: String) -> Result<(), BannedTokenStoreError>;
@@ -36,7 +49,7 @@ pub trait BannedTokenStore: Send + Sync {
 #[derive(Debug, Error)]
 pub enum BannedTokenStoreError {
     #[error("Unexpected error")]
-    UnexpectedError,
+    UnexpectedError(#[source] Report),
 }
 
 #[async_trait::async_trait]
@@ -56,12 +69,22 @@ pub trait TwoFACodeStore {
     ) -> Result<(LoginAttemptId, TwoFACode), TwoFACodeStoreError>;
 }
 
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error)]
 pub enum TwoFACodeStoreError {
     #[error("Login attempt ID not found")]
     LoginAttemptIdNotFound,
     #[error("Unexpected error")]
-    UnexpectedError,
+    UnexpectedError(#[source] Report),
+}
+
+impl PartialEq for TwoFACodeStoreError {
+    fn eq(&self, other: &Self) -> bool {
+        matches!(
+            (self, other),
+            (Self::LoginAttemptIdNotFound, Self::LoginAttemptIdNotFound)
+            | (Self::UnexpectedError(_), Self::UnexpectedError(_))
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
