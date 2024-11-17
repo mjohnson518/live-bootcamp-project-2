@@ -2,6 +2,7 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use axum_extra::extract::CookieJar;
 use serde::{Deserialize, Serialize};
 use color_eyre::eyre::Context;
+use secrecy::Secret;
 use crate::{
     app_state::AppState,
     AuthAPIError,
@@ -15,15 +16,8 @@ use crate::{
 
 #[derive(Debug, Deserialize)]
 pub struct LoginRequest {
-    pub email: String,
-    pub password: String,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(untagged)]
-pub enum LoginResponse {
-    RegularAuth,
-    TwoFactorAuth(TwoFactorAuthResponse),
+    pub email: Secret<String>,
+    pub password: Secret<String>,
 }
 
 #[derive(Debug, Serialize, Clone, PartialEq, Deserialize)]
@@ -35,7 +29,7 @@ pub struct TwoFactorAuthResponse {
     pub two_fa_code: String,
 }
 
-#[tracing::instrument(name = "Login handler", skip(state, jar))]
+#[tracing::instrument(name = "Login handler", skip(state, jar, request))]
 pub async fn login(
     State(state): State<AppState>,
     jar: CookieJar,
@@ -45,7 +39,7 @@ pub async fn login(
     (jar, result)
 }
 
-#[tracing::instrument(name = "Process login", skip(state, jar))]
+#[tracing::instrument(name = "Process login", skip(state, jar, request))]
 async fn process_login(
     state: AppState,
     jar: CookieJar,

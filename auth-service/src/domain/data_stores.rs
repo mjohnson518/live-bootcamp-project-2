@@ -7,6 +7,7 @@ use rand::Rng;
 use std::fmt;
 use thiserror::Error;
 use color_eyre::eyre::Report;
+use secrecy::{ExposeSecret, Secret};
 
 #[async_trait]
 pub trait UserStore {
@@ -27,7 +28,6 @@ pub enum UserStoreError {
     UnexpectedError(#[source] Report),
 }
 
-
 impl PartialEq for UserStoreError {
     fn eq(&self, other: &Self) -> bool {
         matches!(
@@ -42,8 +42,8 @@ impl PartialEq for UserStoreError {
 
 #[async_trait::async_trait]
 pub trait BannedTokenStore: Send + Sync {
-    async fn store_token(&self, token: String) -> Result<(), BannedTokenStoreError>;
-    async fn contains_token(&self, token: &str) -> Result<bool, BannedTokenStoreError>;
+    async fn store_token(&self, token: Secret<String>) -> Result<(), BannedTokenStoreError>;
+    async fn contains_token(&self, token: &Secret<String>) -> Result<bool, BannedTokenStoreError>;
 }
 
 #[derive(Debug, Error)]
@@ -88,12 +88,11 @@ impl PartialEq for TwoFACodeStoreError {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct LoginAttemptId(String);
+pub struct LoginAttemptId(Secret<String>);
 
 impl LoginAttemptId {
-    // Parse a string into a LoginAttemptId, ensuring it's a valid UUID
-    pub fn parse(id: String) -> Result<Self, String> {
-        match Uuid::parse_str(&id) {
+    pub fn parse(id: Secret<String>) -> Result<Self, String> {
+        match Uuid::parse_str(id.expose_secret()) {
             Ok(_) => Ok(LoginAttemptId(id)),
             Err(_) => Err("Invalid login attempt ID format".to_string()),
         }
@@ -101,26 +100,23 @@ impl LoginAttemptId {
 }
 
 impl Default for LoginAttemptId {
-    // Generate a new random UUID when Default is called
     fn default() -> Self {
-        LoginAttemptId(Uuid::new_v4().to_string())
+        LoginAttemptId(Secret::new(Uuid::new_v4().to_string()))
     }
 }
 
-// Implement AsRef<str> to easily get the underlying string
-impl AsRef<str> for LoginAttemptId {
-    fn as_ref(&self) -> &str {
+impl AsRef<Secret<String>> for LoginAttemptId {
+    fn as_ref(&self) -> &Secret<String> {
         &self.0
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct TwoFACode(String);
+pub struct TwoFACode(Secret<String>);
 
 impl TwoFACode {
-    // Parse a string into a TwoFACode, ensuring it's a 6-digit code
-    pub fn parse(code: String) -> Result<Self, String> {
-        if code.len() != 6 || !code.chars().all(|c| c.is_ascii_digit()) {
+    pub fn parse(code: Secret<String>) -> Result<Self, String> {
+        if code.expose_secret().len() != 6 || !code.expose_secret().chars().all(|c| c.is_ascii_digit()) {
             return Err("2FA code must be exactly 6 digits".to_string());
         }
         Ok(TwoFACode(code))
@@ -128,24 +124,21 @@ impl TwoFACode {
 }
 
 impl Default for TwoFACode {
-    // Generate a new random 6-digit code when Default is called
     fn default() -> Self {
         let code = rand::thread_rng()
             .gen_range(0..=999999)
             .to_string()
             .pad_left(6, '0');
-        TwoFACode(code)
+        TwoFACode(Secret::new(code))
     }
 }
 
-// Implement AsRef<str> to easily get the underlying string
-impl AsRef<str> for TwoFACode {
-    fn as_ref(&self) -> &str {
+impl AsRef<Secret<String>> for TwoFACode {
+    fn as_ref(&self) -> &Secret<String> {
         &self.0
     }
 }
 
-// Helper trait to pad numbers with leading zeros
 trait PadLeft {
     fn pad_left(self, width: usize, pad_char: char) -> String;
 }
@@ -163,6 +156,6 @@ impl PadLeft for String {
 
 impl fmt::Display for TwoFACode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "{}", self.0.expose_secret())
     }
 }
