@@ -1,15 +1,16 @@
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use color_eyre::eyre::{eyre, Result};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Email(String);
 
 impl Email {
-    pub fn parse(s: String) -> Result<Email, String> {
+    pub fn parse(s: String) -> Result<Email> {
         if s.contains('@') {
             Ok(Email(s))
         } else {
-            Err("Invalid email address".to_string())
+            Err(eyre!("Invalid email address"))
         }
     }
 }

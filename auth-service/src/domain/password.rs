@@ -1,14 +1,15 @@
 use std::fmt;
+use color_eyre::eyre::{eyre, Result};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Password(String);
 
 impl Password {
-    pub fn parse(s: String) -> Result<Password, String> {
+    pub fn parse(s: String) -> Result<Password> {
         if s.len() >= 8 {
             Ok(Password(s))
         } else {
-            Err("Password must be at least 8 characters long".to_string())
+            Err(eyre!("Password must be at least 8 characters long"))
         }
     }
 }

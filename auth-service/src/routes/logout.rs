@@ -12,32 +12,42 @@ use crate::{
 };
 use std::ops::Deref;
 
+#[tracing::instrument(name = "Logout", skip(state, jar))]
 pub async fn logout(
     State(state): State<AppState>,
     jar: CookieJar,
 ) -> Result<(CookieJar, impl IntoResponse), AuthAPIError> {
-    // Get JWT cookie
+    tracing::debug!("Getting JWT cookie");
     let cookie = jar
         .get(JWT_COOKIE_NAME)
-        .ok_or(AuthAPIError::MissingToken)?;
+        .ok_or_else(|| {
+            tracing::warn!("No JWT cookie found");
+            AuthAPIError::MissingToken
+        })?;
     
     let token = cookie.value();
     
-    // Validate the token
+    tracing::debug!("Validating token");
     let banned_token_store = state.banned_token_store.read().await;
     validate_token(token, banned_token_store.deref())
         .await
-        .map_err(|_| AuthAPIError::InvalidToken)?;
+        .map_err(|e| {
+            tracing::warn!("Token validation failed: {:?}", e);
+            AuthAPIError::InvalidToken
+        })?;
     drop(banned_token_store);
 
-    // Add token to banned token store
+    tracing::debug!("Banning token");
     let banned_token_store = state.banned_token_store.write().await;
     banned_token_store
         .store_token(token.to_string())
         .await
-        .map_err(|_| AuthAPIError::UnexpectedError)?;
+        .map_err(|e| {
+            tracing::error!("Failed to ban token: {:?}", e);
+            AuthAPIError::UnexpectedError(e.into())
+        })?;
         
-    // Remove the JWT cookie
+    tracing::debug!("Removing JWT cookie");
     let removal_cookie = cookie::Cookie::build((JWT_COOKIE_NAME, ""))
         .path("/")
         .max_age(Duration::ZERO)
@@ -46,5 +56,6 @@ pub async fn logout(
     
     let jar = jar.remove(removal_cookie);
     
+    tracing::info!("Logout successful");
     Ok((jar, StatusCode::OK))
 }
