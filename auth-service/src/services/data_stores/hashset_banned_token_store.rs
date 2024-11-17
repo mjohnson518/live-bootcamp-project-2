@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::sync::RwLock;
 use async_trait::async_trait;
 use color_eyre::eyre::eyre;
+use secrecy::{ExposeSecret, Secret};
 use crate::domain::data_stores::{BannedTokenStore, BannedTokenStoreError};
 
 #[derive(Default)]
@@ -19,20 +20,20 @@ impl HashsetBannedTokenStore {
 
 #[async_trait]
 impl BannedTokenStore for HashsetBannedTokenStore {
-    async fn store_token(&self, token: String) -> Result<(), BannedTokenStoreError> {
+    async fn store_token(&self, token: Secret<String>) -> Result<(), BannedTokenStoreError> {
         self.tokens
             .write()
             .map_err(|e| BannedTokenStoreError::UnexpectedError(eyre!(e).into()))
             .map(|mut tokens| {
-                tokens.insert(token);
+                tokens.insert(token.expose_secret().to_string());
             })
     }
 
-    async fn contains_token(&self, token: &str) -> Result<bool, BannedTokenStoreError> {
+    async fn contains_token(&self, token: &Secret<String>) -> Result<bool, BannedTokenStoreError> {
         self.tokens
             .read()
             .map_err(|e| BannedTokenStoreError::UnexpectedError(eyre!(e).into()))
-            .map(|tokens| tokens.contains(token))
+            .map(|tokens| tokens.contains(token.expose_secret()))
     }
 }
 
@@ -43,7 +44,7 @@ mod tests {
     #[tokio::test]
     async fn test_store_token() {
         let store = HashsetBannedTokenStore::default();
-        let token = "test_token".to_string();
+        let token = Secret::new("test_token".to_string());
         
         assert!(store.store_token(token).await.is_ok());
     }
@@ -51,7 +52,7 @@ mod tests {
     #[tokio::test]
     async fn test_contains_token() {
         let store = HashsetBannedTokenStore::default();
-        let token = "test_token".to_string();
+        let token = Secret::new("test_token".to_string());
         
         // Token should not exist initially
         assert!(!store.contains_token(&token).await.unwrap());
@@ -66,8 +67,8 @@ mod tests {
     #[tokio::test]
     async fn test_multiple_tokens() {
         let store = HashsetBannedTokenStore::default();
-        let token1 = "test_token_1".to_string();
-        let token2 = "test_token_2".to_string();
+        let token1 = Secret::new("test_token_1".to_string());
+        let token2 = Secret::new("test_token_2".to_string());
         
         // Store both tokens
         store.store_token(token1.clone()).await.unwrap();
@@ -78,6 +79,6 @@ mod tests {
         assert!(store.contains_token(&token2).await.unwrap());
         
         // Non-existent token should not exist
-        assert!(!store.contains_token("nonexistent").await.unwrap());
+        assert!(!store.contains_token(&Secret::new("nonexistent".to_string())).await.unwrap());
     }
 }

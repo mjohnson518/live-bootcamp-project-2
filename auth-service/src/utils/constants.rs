@@ -3,10 +3,11 @@ use lazy_static::lazy_static;
 use std::env as std_env;
 use secrecy::{Secret, ExposeSecret};
 
+
 lazy_static! {
     pub static ref JWT_SECRET: Secret<String> = Secret::new(set_token());
     pub static ref DATABASE_URL: Secret<String> = Secret::new(set_database_url());
-    pub static ref REDIS_HOST_NAME: String = set_redis_host();
+    pub static ref REDIS_HOST_NAME: Secret<String> = Secret::new(set_redis_host());
 }
 
 fn set_token() -> String {

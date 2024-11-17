@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use sqlx::PgPool;
+use secrecy::{ExposeSecret, Secret};
 use auth_service::{
     Application, 
     app_state::AppState, 
@@ -76,7 +77,7 @@ async fn configure_postgresql() -> PgPool {
 }
 
 fn configure_redis() -> redis::Connection {
-    get_redis_client(REDIS_HOST_NAME.to_owned())
+    get_redis_client(REDIS_HOST_NAME.expose_secret().to_owned())
         .expect("Failed to get Redis client")
         .get_connection()
         .expect("Failed to get Redis connection")

@@ -2,6 +2,7 @@ use std::sync::Arc;
 use redis::{Commands, Connection};
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
+use secrecy::Secret;
 use crate::domain::{
     data_stores::{LoginAttemptId, TwoFACode, TwoFACodeStore, TwoFACodeStoreError},
     email::Email,
@@ -28,8 +29,8 @@ impl TwoFACodeStore for RedisTwoFACodeStore {
         let key = get_key(&email);
         
         let data = TwoFATuple(
-            login_attempt_id.as_ref().to_owned(),
-            code.as_ref().to_owned(),
+            login_attempt_id.as_ref().expose_secret().to_owned(),
+            code.as_ref().expose_secret().to_owned(),
         );
         let serialized_data = 
             serde_json::to_string(&data).map_err(|_| TwoFACodeStoreError::UnexpectedError)?;
@@ -68,11 +69,11 @@ impl TwoFACodeStore for RedisTwoFACodeStore {
                 let data: TwoFATuple = serde_json::from_str(&value)
                     .map_err(|_| TwoFACodeStoreError::UnexpectedError)?;
 
-                let login_attempt_id = LoginAttemptId::parse(data.0)
+                let login_attempt_id = LoginAttemptId::parse(Secret::new(data.0))
                     .map_err(|_| TwoFACodeStoreError::UnexpectedError)?;
 
-                let email_code = 
-                    TwoFACode::parse(data.1).map_err(|_| TwoFACodeStoreError::UnexpectedError)?;
+                let email_code = TwoFACode::parse(Secret::new(data.1))
+                    .map_err(|_| TwoFACodeStoreError::UnexpectedError)?;
 
                 Ok((login_attempt_id, email_code))
             }
@@ -88,13 +89,14 @@ const TEN_MINUTES_IN_SECONDS: u64 = 600;
 const TWO_FA_CODE_PREFIX: &str = "two_fa_code:";
 
 fn get_key(email: &Email) -> String {
-    format!("{}{}", TWO_FA_CODE_PREFIX, email.as_ref())
+    format!("{}{}", TWO_FA_CODE_PREFIX, email.as_ref().expose_secret())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use redis::Client;
+    use secrecy::Secret;
 
     async fn setup() -> RedisTwoFACodeStore {
         let client = Client::open("redis://127.0.0.1/").expect("Failed to create Redis client");
@@ -105,9 +107,9 @@ mod tests {
     #[tokio::test]
     async fn should_store_and_retrieve_code() {
         let mut store = setup().await;
-        let email = Email::parse("test@example.com".to_string()).unwrap();
+        let email = Email::parse(Secret::new("test@example.com".to_string())).unwrap();
         let login_attempt_id = LoginAttemptId::default();
-        let code = TwoFACode::parse("123456".to_string()).unwrap();
+        let code = TwoFACode::parse(Secret::new("123456".to_string())).unwrap();
 
         store.add_code(email.clone(), login_attempt_id.clone(), code.clone())
             .await
@@ -124,7 +126,7 @@ mod tests {
     #[tokio::test]
     async fn should_return_error_for_nonexistent_email() {
         let store = setup().await;
-        let email = Email::parse("nonexistent@example.com".to_string()).unwrap();
+        let email = Email::parse(Secret::new("nonexistent@example.com".to_string())).unwrap();
         let result = store.get_code(&email).await;
 
         assert!(matches!(result, Err(TwoFACodeStoreError::LoginAttemptIdNotFound)));
@@ -133,9 +135,9 @@ mod tests {
     #[tokio::test]
     async fn should_remove_existing_code() {
         let mut store = setup().await;
-        let email = Email::parse("test@example.com".to_string()).unwrap();
+        let email = Email::parse(Secret::new("test@example.com".to_string())).unwrap();
         let login_attempt_id = LoginAttemptId::default();
-        let code = TwoFACode::parse("123456".to_string()).unwrap();
+        let code = TwoFACode::parse(Secret::new("123456".to_string())).unwrap();
 
         store.add_code(email.clone(), login_attempt_id, code)
             .await
@@ -153,16 +155,16 @@ mod tests {
     #[tokio::test]
     async fn should_update_existing_code() {
         let mut store = setup().await;
-        let email = Email::parse("test@example.com".to_string()).unwrap();
+        let email = Email::parse(Secret::new("test@example.com".to_string())).unwrap();
         let initial_id = LoginAttemptId::default();
-        let initial_code = TwoFACode::parse("123456".to_string()).unwrap();
+        let initial_code = TwoFACode::parse(Secret::new("123456".to_string())).unwrap();
 
         store.add_code(email.clone(), initial_id, initial_code)
             .await
             .expect("Failed to store initial code");
 
         let new_id = LoginAttemptId::default();
-        let new_code = TwoFACode::parse("654321".to_string()).unwrap();
+        let new_code = TwoFACode::parse(Secret::new("654321".to_string())).unwrap();
 
         store.add_code(email.clone(), new_id.clone(), new_code.clone())
             .await

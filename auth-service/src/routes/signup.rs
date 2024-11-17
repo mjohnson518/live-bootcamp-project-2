@@ -51,14 +51,6 @@ pub async fn signup(
     Ok((StatusCode::CREATED, response))
 }
 
-#[derive(Deserialize)]
-pub struct SignupRequest {
-    pub email: String,
-    pub password: String,
-    #[serde(rename = "requires2FA")]
-    pub requires_2fa: bool,
-}
-
 #[derive(Serialize)]
 pub struct SignupResponse {
     pub message: String,
